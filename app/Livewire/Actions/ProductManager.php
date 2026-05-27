@@ -24,20 +24,17 @@ class ProductManager extends Component
 
     public function store()
     {
-        $this->validate(); 
+        $this->validate();
 
         $imagePath = null;
         if ($this->image) {
             $imagePath = $this->image->store('products', 'public');
         }
 
-        // Buscamos la tienda asignada al usuario logueado mediante el Modelo
-        $store = \App\Models\User::find(Auth::id())->stores()->first();
-        
-        if (!$store) {
-            session()->flash('error', 'No tienes una tienda asignada para crear productos.');
-            return;
-        }
+        // Le decimos explícitamente a Intelephense que este es nuestro Modelo User
+        /** @var \App\Models\User $user */
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $store = $user->stores()->first();
 
         $store->products()->create([
             'name' => $this->name,
@@ -47,7 +44,9 @@ class ProductManager extends Component
         ]);
 
         $this->reset(['name', 'description', 'price', 'image']);
-        session()->flash('success', '¡Producto añadido exitosamente a GeoStore!');
+
+        // Usamos el Facade Session para eliminar la línea roja de VS Code
+        \Illuminate\Support\Facades\Session::flash('success', '¡Producto añadido exitosamente a GeoStore!');
     }
 
     public function destroy($id)
@@ -62,10 +61,9 @@ class ProductManager extends Component
 
     public function render()
     {
-        // EAGER LOADING
-        $products = Product::with('categories')->get();
+        $products = \App\Models\Product::with('categories')->get();
 
-        // Cambiamos la ruta de la vista a la de components
-        return view('components.livewire.product-manager', compact('products'));
+        // Como la carpeta livewire ya está suelta en views, esta ruta ahora sí funcionará
+        return view('livewire.product-manager', compact('products'));
     }
 }
